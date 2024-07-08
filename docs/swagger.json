@@ -1,0 +1,170 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Tooki??",
+        "contact": {},
+        "license": {
+            "name": "Apache 2.0"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/login": {
+            "post": {
+                "description": "Аутентификация пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Аутентификация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для аутентификации",
+                        "name": "login",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/repository.LoginUserDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Неправильные логин или пароль"
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Регистрация пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Регистрация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/repository.RegisterUserDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь зарегистрирован",
+                        "schema": {
+                            "$ref": "#/definitions/repository.RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Нверные данные"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "repository.LoginUserDto": {
+            "type": "object",
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "repository.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "banned": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-03-02"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "test@gmail.com"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "8cbabbe9-5fff-4dbe-a77e-104bf4e63dbe"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Зиновьев Артём"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "USER"
+                },
+                "verified": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "repository.RegisterUserDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "login",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "email": {
+                    "type": "string",
+                    "example": "test@email.com"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "Female"
+                },
+                "login": {
+                    "type": "string",
+                    "example": "sw1ft12"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Артёмчик Zиновьев"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "assag23214"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

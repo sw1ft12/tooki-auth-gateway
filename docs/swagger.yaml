@@ -1,0 +1,115 @@
+definitions:
+  repository.LoginUserDto:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  repository.RegisterResponse:
+    properties:
+      banned:
+        type: boolean
+      created_at:
+        example: "2024-03-02"
+        type: string
+      email:
+        example: test@gmail.com
+        type: string
+      id:
+        example: 8cbabbe9-5fff-4dbe-a77e-104bf4e63dbe
+        type: string
+      name:
+        example: Зиновьев Артём
+        type: string
+      role:
+        example: USER
+        type: string
+      verified:
+        type: boolean
+    type: object
+  repository.RegisterUserDto:
+    properties:
+      age:
+        example: 5
+        type: integer
+      email:
+        example: test@email.com
+        type: string
+      gender:
+        example: Female
+        type: string
+      login:
+        example: sw1ft12
+        type: string
+      name:
+        example: Артёмчик Zиновьев
+        type: string
+      password:
+        example: assag23214
+        type: string
+    required:
+    - email
+    - login
+    - name
+    - password
+    type: object
+info:
+  contact: {}
+  license:
+    name: Apache 2.0
+  title: Tooki??
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя
+      parameters:
+      - description: Данные для аутентификации
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/repository.LoginUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Неправильные логин или пароль
+      summary: Аутентификация пользователя
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрация пользователя
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/repository.RegisterUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь зарегистрирован
+          schema:
+            $ref: '#/definitions/repository.RegisterResponse'
+        "400":
+          description: Нверные данные
+      summary: Регистрация пользователя
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
