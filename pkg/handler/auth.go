@@ -1,105 +1,102 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"log"
 	"net/http"
 	"time"
+	"tooki/pkg/authErrs"
 	"tooki/pkg/models"
-	"tooki/pkg/repository"
+	"tooki/pkg/tokens"
 )
+
+func BindJSON(c *gin.Context, data any) *authErrs.Error {
+	err := c.BindJSON(&data)
+	if err != nil {
+		return authErrs.New(authErrs.EINCORRECT, "некорректные данные"+err.Error(), "handler.BindJSON")
+	}
+	return nil
+}
+
+func SendError(c *gin.Context, err *authErrs.Error) {
+	switch err.Code {
+	case authErrs.EINTERNAL:
+		c.JSON(http.StatusInternalServerError, err.Message)
+	case authErrs.EEXIST:
+		c.JSON(http.StatusConflict, err.Message)
+	case authErrs.ENOTFOUND:
+		c.JSON(http.StatusUnauthorized, err.Message)
+	case authErrs.EINCORRECT:
+		c.JSON(http.StatusBadRequest, err.Message)
+	}
+	logOut := fmt.Sprintf("\nType: %s\nMessage: %s\nOp: %s\n", err.Code, err.Message, err.Op)
+	log.Println(logOut)
+}
 
 // @Summary		Регистрация пользователя
 // @Description	Регистрация пользователя
 // @Tags			Auth
 // @Accept			json
 // @Produce		json
-// @Param			user	body		repository.RegisterUserDto	true	"Данные для регистрации"
-// @Success		200		{object}	repository.RegisterResponse	"Пользователь зарегистрирован"
+// @Param			user	body		models.RegisterUserDto	true	"Данные для регистрации"
+// @Success		201		{object}	models.RegisterResponse	"Пользователь зарегистрирован"
 // @Failure		400		"Нверные данные"
 // @Router			/register [post]
 func (h *Handler) Register(c *gin.Context) {
-	var data repository.RegisterUserDto
-	err := c.BindJSON(&data)
+	var dto models.RegisterUserDto
+	err := BindJSON(c, &dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, "некорректные данные"+err.Error())
+		SendError(c, err)
 		return
 	}
 
-	user, err := h.repo.CreateUser(data)
+	user, err := h.repo.CreateUser(dto)
 	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
+		SendError(c, err)
 		return
 	}
+
 	c.JSON(http.StatusOK, user)
-}
-
-type tokenClaims struct {
-	jwt.RegisteredClaims
-	Id     string `json:"id"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Gender string `json:"gender"`
-	Role   string `json:"role"`
-}
-
-const key = "22323"
-
-func GenerateTokens(user *models.User) (repository.RefreshToken, string, error) {
-	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 5)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		Id:     user.Id,
-		Name:   user.Name,
-		Email:  user.Email,
-		Gender: user.Gender,
-		Role:   user.Role,
-	}).SignedString([]byte(key))
-	refreshToken := repository.RefreshToken{Token: uuid.NewString(), ExpirationTime: time.Now().Add(time.Hour * 30 * 24)}
-	return refreshToken, accessToken, err
 }
 
 // @Summary		Аутентификация пользователя
 // @Description	Аутентификация пользователя
 // @Tags			Auth
-// @Param			login	body	repository.LoginUserDto	true	"Данные для аутентификации"
+// @Param			login	body	models.LoginUserDto	true	"Данные для аутентификации"
 // @Accept			json
 // @Produce		json
-// @Success		200
+// @Success		200 {object} models.LoginRespons
 // @Failure		400	"Неправильные логин или пароль"
 // @Router			/login [post]
 func (h *Handler) Login(c *gin.Context) {
-	var data repository.LoginUserDto
-	err := c.BindJSON(&data)
+	var dto models.LoginUserDto
+	err := BindJSON(c, &dto)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, "Некорректные данные")
+		SendError(c, err)
 		return
-	}
-	user, err := h.repo.GetUserByLogin(data)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-	refreshToken, accessToken, err := GenerateTokens(user)
-	if err != nil {
-		log.Fatal(err)
 	}
 
-	err = h.repo.CreateRefreshToken(user.Id)
+	user, err := h.repo.GetUserByLogin(dto)
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			c.JSON(http.StatusInternalServerError, pgErr.Error())
-			return
-		}
+		SendError(c, err)
+		return
+	}
+
+	refreshToken, accessToken, err := tokens.GenerateTokens(user)
+	if err != nil {
+		SendError(c, err)
+		return
+	}
+
+	err = h.repo.SaveRefreshToken(refreshToken)
+	if err != nil {
+		SendError(c, err)
+		return
 	}
 
 	c.SetCookie("refresh_token", refreshToken.Token, int(time.Now().Add(time.Hour*24*30).Unix()), "/", "", true, true)
-	resp := repository.LoginResponse{
+	resp := models.LoginResponse{
 		AccessToken: accessToken,
 		Id:          user.Id,
 		Name:        user.Name,

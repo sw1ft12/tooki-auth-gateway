@@ -22,6 +22,6 @@ CREATE TABLE Users
 CREATE TABLE Tokens (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     expires_in DATE DEFAULT CURRENT_DATE + 30,
-    user_id UUID REFERENCES users(id),
+    user_id UUID UNIQUE REFERENCES users(id),
     user_agent TEXT
 )

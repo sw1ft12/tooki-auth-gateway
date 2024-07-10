@@ -2,13 +2,11 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
-	"time"
+	"tooki/pkg/authErrs"
 	"tooki/pkg/models"
 )
 
@@ -20,27 +18,7 @@ func NewRepo(pool *pgxpool.Pool) *Repo {
 	return &Repo{pool: pool}
 }
 
-type RegisterUserDto struct {
-	Email    string `json:"email"  binding:"required" example:"test@email.com"`
-	Login    string `json:"login" binding:"required" example:"sw1ft12"`
-	Password string `json:"password" binding:"required" example:"assag23214"`
-	Name     string `json:"name" binding:"required" example:"Артёмчик Zиновьев"`
-	Age      int    `json:"age" example:"5"`
-	Gender   string `json:"gender"  example:"Female"`
-}
-
-type RegisterResponse struct {
-	Id        string    `json:"id" db:"id" example:"8cbabbe9-5fff-4dbe-a77e-104bf4e63dbe"`
-	Email     string    `json:"email" db:"email" example:"test@gmail.com"`
-	Name      string    `json:"name" db:"name" example:"Зиновьев Артём"`
-	Role      string    `json:"role" db:"role" example:"USER"`
-	CreatedAt time.Time `json:"created_at" db:"created_at" example:"2024-03-02"`
-	Verified  bool      `json:"verified" db:"verified"`
-	Banned    bool      `json:"banned" db:"banned"`
-}
-
-func (r *Repo) CreateUser(data RegisterUserDto) (RegisterResponse, error) {
-
+func (r *Repo) CreateUser(data models.RegisterUserDto) (models.RegisterResponse, *authErrs.Error) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(data.Password), 12)
 
 	ctx := context.Background()
@@ -55,73 +33,60 @@ func (r *Repo) CreateUser(data RegisterUserDto) (RegisterResponse, error) {
 		"gender":   data.Gender,
 	})
 
+	op := "repository.CreateUser"
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
-			return RegisterResponse{}, pgErr
+			return models.RegisterResponse{}, authErrs.New(authErrs.EINTERNAL, pgErr.Message, op)
 		}
-		return RegisterResponse{}, errors.New("такой пользователь уже существует")
+		return models.RegisterResponse{}, authErrs.New(authErrs.EEXIST, "Пользователь уже существует", op)
 	}
 
 	query := `SELECT id, email, name, role, created_at, verified, banned FROM Users`
-	row, err := r.pool.Query(ctx, query)
-	resp, _ := pgx.CollectOneRow(row, pgx.RowToStructByNameLax[RegisterResponse])
+	row, _ := r.pool.Query(ctx, query)
+	resp, _ := pgx.CollectOneRow(row, pgx.RowToStructByNameLax[models.RegisterResponse])
 	return resp, nil
 }
 
-type LoginUserDto struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-}
-
-type LoginResponse struct {
-	AccessToken string `json:"token" db:"token"`
-	Id          string `json:"id" db:"id"`
-	Name        string `json:"name" db:"name"`
-	Email       string `json:"email"`
-	Gender      string `json:"gender"`
-	Role        string `json:"role"`
-}
-
-func (r *Repo) GetUserByLogin(data LoginUserDto) (*models.User, error) {
+func (r *Repo) GetUserByLogin(dto models.LoginUserDto) (*models.User, *authErrs.Error) {
 	ctx := context.Background()
 	row, err := r.pool.Query(ctx, `SELECT * FROM Users WHERE login = @login`,
-		pgx.NamedArgs{"login": data.Login})
+		pgx.NamedArgs{
+			"login": dto.Login,
+		})
+
+	op := "repository.GetUserByLogin"
 	if err != nil {
-		return nil, errors.New("неправильный логин или пароль")
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			return nil, authErrs.New(authErrs.EINTERNAL, pgErr.Message, op)
+		}
+		return nil, authErrs.New(authErrs.EEXIST, "Неправильный логин или пароль", op)
 	}
 
 	user, _ := pgx.CollectOneRow(row, pgx.RowToStructByNameLax[models.User])
 
-	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password)) != nil {
-		return nil, errors.New("неправильный логин или пароль")
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(dto.Password)) != nil {
+		return nil, authErrs.New(authErrs.EEXIST, "Неправильный логин или пароль", op)
 	}
 
 	return &user, nil
 }
 
-type RefreshToken struct {
-	Token          string
-	ExpirationTime time.Time
-}
-
-func (r *Repo) CreateRefreshToken(userId string) error {
+func (r *Repo) SaveRefreshToken(token *models.RefreshToken) *authErrs.Error {
 	ctx := context.Background()
-	query := "INSERT INTO Tokens (user_id) VALUES (@userId)"
+	query := `INSERT INTO Tokens (user_id, token, expires_in) VALUES (@user_id, @token, @expires_in) 
+			ON CONFLICT(user_id) DO UPDATE SET token=@token, expires_in=@expires_in`
 	_, err := r.pool.Query(ctx, query, pgx.NamedArgs{
-		"userId": userId,
+		"userId":     token.UserId,
+		"token":      token.Token,
+		"expires_in": token.ExpiresIn,
 	})
+
+	op := "repository.Tokens"
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
-			return pgErr
+			return authErrs.New(authErrs.EINTERNAL, pgErr.Message, op)
 		}
+		return authErrs.New(authErrs.EINTERNAL, "Невалидный токен", op)
 	}
 	return nil
-}
-
-func (r *Repo) UpdateRefreshToken(token *jwt.Token) {
-	q := `UPDATE Tokens SET refresh_token = @token`
-	ctx := context.Background()
-	r.pool.QueryRow(ctx, q, pgx.NamedArgs{
-		"token": token.Raw,
-	})
 }
