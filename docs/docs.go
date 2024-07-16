@@ -55,6 +55,20 @@ const docTemplate = `{
                 }
             }
         },
+        "/logout": {
+            "get": {
+                "description": "Выход из учётной записи и удаление refresh_token пользователя",
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Выход из учётной записи",
+                "responses": {
+                    "200": {
+                        "description": "Сброс refresh_token пользователя"
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
                 "description": "Регистрация пользователя",
@@ -104,8 +118,8 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "Male",
-                        " Female",
-                        " Unknown"
+                        "Female",
+                        "Unknown"
                     ]
                 },
                 "id": {
@@ -115,7 +129,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "USER",
+                        "ADMIN",
+                        "SUPERADMIN"
+                    ]
                 },
                 "token": {
                     "type": "string"
@@ -162,9 +181,9 @@ const docTemplate = `{
                 "role": {
                     "type": "string",
                     "enum": [
-                        "User",
-                        " Admin",
-                        " SuperAdmin"
+                        "USER",
+                        "ADMIN",
+                        "SUPERADMIN"
                     ],
                     "example": "USER"
                 },
@@ -180,16 +199,16 @@ const docTemplate = `{
                 "email",
                 "gender",
                 "login",
-                "name",
-                "password"
+                "name"
             ],
             "properties": {
                 "age": {
                     "type": "integer",
+                    "maximum": 130,
+                    "minimum": 0,
                     "example": 5
                 },
                 "email": {
-                    "description": "E",
                     "type": "string",
                     "example": "test@email.com"
                 },

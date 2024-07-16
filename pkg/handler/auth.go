@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"log"
 	"net/http"
 	"time"
@@ -15,6 +16,14 @@ func BindJSON(c *gin.Context, data any) *authErrs.Error {
 	err := c.BindJSON(&data)
 	if err != nil {
 		return authErrs.New(authErrs.EINCORRECT, "некорректные данные"+err.Error(), "handler.BindJSON")
+	}
+	return nil
+}
+
+func Validate(v *validator.Validate, s any) *authErrs.Error {
+	err := v.Struct(s)
+	if err != nil {
+		return authErrs.New(authErrs.EINCORRECT, err.Error(), "handler.Validate")
 	}
 	return nil
 }
@@ -46,6 +55,12 @@ func SendError(c *gin.Context, err *authErrs.Error) {
 func (h *Handler) Register(c *gin.Context) {
 	var dto models.RegisterUserDto
 	err := BindJSON(c, &dto)
+	if err != nil {
+		SendError(c, err)
+		return
+	}
+
+	err = Validate(h.validator, dto)
 	if err != nil {
 		SendError(c, err)
 		return
@@ -105,4 +120,13 @@ func (h *Handler) Login(c *gin.Context) {
 		Role:        user.Role,
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// @Summary		Выход из учётной записи
+// @Description	Выход из учётной записи и удаление refresh_token пользователя
+// @Tags			Auth
+// @Success		200 "Сброс refresh_token пользователя"
+// @Router			/logout [get]
+func (h *Handler) LogOut(c *gin.Context) {
+	c.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 }

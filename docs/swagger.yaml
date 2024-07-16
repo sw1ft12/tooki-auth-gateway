@@ -6,14 +6,18 @@ definitions:
       gender:
         enum:
         - Male
-        - ' Female'
-        - ' Unknown'
+        - Female
+        - Unknown
         type: string
       id:
         type: string
       name:
         type: string
       role:
+        enum:
+        - USER
+        - ADMIN
+        - SUPERADMIN
         type: string
       token:
         type: string
@@ -46,9 +50,9 @@ definitions:
         type: string
       role:
         enum:
-        - User
-        - ' Admin'
-        - ' SuperAdmin'
+        - USER
+        - ADMIN
+        - SUPERADMIN
         example: USER
         type: string
       verified:
@@ -58,9 +62,10 @@ definitions:
     properties:
       age:
         example: 5
+        maximum: 130
+        minimum: 0
         type: integer
       email:
-        description: E
         example: test@email.com
         type: string
       gender:
@@ -85,7 +90,6 @@ definitions:
     - gender
     - login
     - name
-    - password
     type: object
 info:
   contact: {}
@@ -116,6 +120,15 @@ paths:
         "400":
           description: Неправильные логин или пароль
       summary: Аутентификация пользователя
+      tags:
+      - Auth
+  /logout:
+    get:
+      description: Выход из учётной записи и удаление refresh_token пользователя
+      responses:
+        "200":
+          description: Сброс refresh_token пользователя
+      summary: Выход из учётной записи
       tags:
       - Auth
   /register:
