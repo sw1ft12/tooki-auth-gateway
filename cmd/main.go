@@ -25,7 +25,6 @@ func main() {
 	}
 	h := handler.NewHandler(db)
 	router := h.InitRoutes()
-
 	err = router.Run(":8000")
 	if err != nil {
 		log.Fatal(err)
