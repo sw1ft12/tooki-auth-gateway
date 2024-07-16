@@ -2,3 +2,5 @@
 req.http
 Makefile
 .env
+.gitignore
+docker-compose.yml

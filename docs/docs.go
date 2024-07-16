@@ -38,13 +38,16 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/repository.LoginUserDto"
+                            "$ref": "#/definitions/models.LoginUserDto"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginResponse"
+                        }
                     },
                     "400": {
                         "description": "Неправильные логин или пароль"
@@ -72,15 +75,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/repository.RegisterUserDto"
+                            "$ref": "#/definitions/models.RegisterUserDto"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Пользователь зарегистрирован",
                         "schema": {
-                            "$ref": "#/definitions/repository.RegisterResponse"
+                            "$ref": "#/definitions/models.RegisterResponse"
                         }
                     },
                     "400": {
@@ -91,8 +94,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "repository.LoginUserDto": {
+        "models.LoginResponse": {
             "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "Male",
+                        " Female",
+                        " Unknown"
+                    ]
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LoginUserDto": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
             "properties": {
                 "login": {
                     "type": "string"
@@ -102,7 +137,7 @@ const docTemplate = `{
                 }
             }
         },
-        "repository.RegisterResponse": {
+        "models.RegisterResponse": {
             "type": "object",
             "properties": {
                 "banned": {
@@ -126,6 +161,11 @@ const docTemplate = `{
                 },
                 "role": {
                     "type": "string",
+                    "enum": [
+                        "User",
+                        " Admin",
+                        " SuperAdmin"
+                    ],
                     "example": "USER"
                 },
                 "verified": {
@@ -133,10 +173,12 @@ const docTemplate = `{
                 }
             }
         },
-        "repository.RegisterUserDto": {
+        "models.RegisterUserDto": {
             "type": "object",
             "required": [
+                "age",
                 "email",
+                "gender",
                 "login",
                 "name",
                 "password"
@@ -147,11 +189,17 @@ const docTemplate = `{
                     "example": 5
                 },
                 "email": {
+                    "description": "E",
                     "type": "string",
                     "example": "test@email.com"
                 },
                 "gender": {
                     "type": "string",
+                    "enum": [
+                        "Male",
+                        " Female",
+                        " Unknown"
+                    ],
                     "example": "Female"
                 },
                 "login": {

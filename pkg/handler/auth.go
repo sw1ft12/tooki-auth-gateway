@@ -66,7 +66,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Param			login	body	models.LoginUserDto	true	"Данные для аутентификации"
 // @Accept			json
 // @Produce		json
-// @Success		200 {object} models.LoginRespons
+// @Success		200 {object} models.LoginResponse
 // @Failure		400	"Неправильные логин или пароль"
 // @Router			/login [post]
 func (h *Handler) Login(c *gin.Context) {

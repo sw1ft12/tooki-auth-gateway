@@ -1,12 +1,34 @@
 definitions:
-  repository.LoginUserDto:
+  models.LoginResponse:
+    properties:
+      email:
+        type: string
+      gender:
+        enum:
+        - Male
+        - ' Female'
+        - ' Unknown'
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      token:
+        type: string
+    type: object
+  models.LoginUserDto:
     properties:
       login:
         type: string
       password:
         type: string
+    required:
+    - login
+    - password
     type: object
-  repository.RegisterResponse:
+  models.RegisterResponse:
     properties:
       banned:
         type: boolean
@@ -23,20 +45,29 @@ definitions:
         example: Зиновьев Артём
         type: string
       role:
+        enum:
+        - User
+        - ' Admin'
+        - ' SuperAdmin'
         example: USER
         type: string
       verified:
         type: boolean
     type: object
-  repository.RegisterUserDto:
+  models.RegisterUserDto:
     properties:
       age:
         example: 5
         type: integer
       email:
+        description: E
         example: test@email.com
         type: string
       gender:
+        enum:
+        - Male
+        - ' Female'
+        - ' Unknown'
         example: Female
         type: string
       login:
@@ -49,7 +80,9 @@ definitions:
         example: assag23214
         type: string
     required:
+    - age
     - email
+    - gender
     - login
     - name
     - password
@@ -72,12 +105,14 @@ paths:
         name: login
         required: true
         schema:
-          $ref: '#/definitions/repository.LoginUserDto'
+          $ref: '#/definitions/models.LoginUserDto'
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
         "400":
           description: Неправильные логин или пароль
       summary: Аутентификация пользователя
@@ -94,14 +129,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/repository.RegisterUserDto'
+          $ref: '#/definitions/models.RegisterUserDto'
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Пользователь зарегистрирован
           schema:
-            $ref: '#/definitions/repository.RegisterResponse'
+            $ref: '#/definitions/models.RegisterResponse'
         "400":
           description: Нверные данные
       summary: Регистрация пользователя
